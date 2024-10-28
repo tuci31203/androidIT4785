@@ -1,5 +1,6 @@
 package com.example.currencycalculator
 
+import android.icu.text.NumberFormat
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -8,6 +9,7 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.Spinner
+import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -19,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var inputTo: EditText
     private lateinit var currFrom: Spinner
     private lateinit var currTo: Spinner
+    private lateinit var exchangeRateText: TextView
 
     private var isUpdatingFrom: Boolean = false
     private var isUpdatingTo: Boolean = false
@@ -39,6 +42,7 @@ class MainActivity : AppCompatActivity() {
         inputTo = findViewById<EditText>(R.id.to)
         currFrom = findViewById<Spinner>(R.id.spinnerFrom)
         currTo = findViewById<Spinner>(R.id.spinnerTo)
+        exchangeRateText = findViewById<TextView>(R.id.exchangeRateText)
 
         setSpinners()
         setEditTexs()
@@ -59,18 +63,6 @@ class MainActivity : AppCompatActivity() {
         currFrom.setSelection(currencies.indexOf("USD"))
         currTo.setSelection(currencies.indexOf("VND"))
 
-//        val spinnerListener = object : AdapterView.OnItemSelectedListener{
-//            override fun onItemSelected(
-//                parent: AdapterView<*>?,
-//                view: View?,
-//                position: Int,
-//                id: Long
-//            ) {
-//                updateConversion()
-//            }
-//
-//            override fun onNothingSelected(parent: AdapterView<*>?) {}
-//        }
         currFrom.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
             override fun onItemSelected(
                 parent: AdapterView<*>?,
@@ -78,8 +70,9 @@ class MainActivity : AppCompatActivity() {
                 position: Int,
                 id: Long
             ) {
+                updateExchangeRateText()
                 if(inputFrom.text.isNotEmpty()){
-                    updateConversion()
+                    updateReverseConversion()
                 }
             }
 
@@ -94,8 +87,9 @@ class MainActivity : AppCompatActivity() {
                 position: Int,
                 id: Long
             ) {
+                updateExchangeRateText()
                 if(inputTo.text.isNotEmpty()){
-                    updateReverseConversion()
+                    updateConversion()
                 }
             }
 
@@ -103,6 +97,7 @@ class MainActivity : AppCompatActivity() {
             }
 
         }
+        updateExchangeRateText()
     }
 
     private fun setEditTexs(){
@@ -176,5 +171,29 @@ class MainActivity : AppCompatActivity() {
         else{
             inputFrom.setText("")
         }
+    }
+
+    private fun updateExchangeRateText() {
+        val fromCurr = currFrom.selectedItem as String
+        val toCurr = currTo.selectedItem as String
+
+        val fromRate = exchange[fromCurr] ?: 1.0
+        val toRate = exchange[toCurr] ?: 1.0
+
+        val rate = toRate / fromRate
+
+        val formattedRate = when {
+            toCurr == "VND" -> String.format(Locale.US, "%.0f", rate)
+            toCurr == "JPY" -> String.format(Locale.US, "%.2f", rate)
+            else -> String.format(Locale.US, "%.2f", rate)
+        }
+
+
+        val formattedText = when {
+            toCurr == "VND" -> NumberFormat.getNumberInstance(Locale.US).format(rate.toLong())
+            else -> formattedRate
+        }
+
+        exchangeRateText.text = "1 $fromCurr = $formattedText $toCurr"
     }
 }
